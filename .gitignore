@@ -2,3 +2,5 @@ node_modules/
 dist/
 .env
 *.tsbuildinfo
+.DS_Store
+Docs/
