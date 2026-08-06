@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - conectus.mx</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <header class="dash-header">
+      <div class="logo"><span class="gradient-text">conectus</span><span>.mx</span></div>
+      <div class="user-menu">
+        <span><%= org.organization_name %></span>
+        <a href="/onboarding/logout" class="btn-secondary btn-sm">Salir</a>
+      </div>
+    </header>
+
+    <main class="dash-content">
+      <h1>Panel de Facturacion</h1>
+      <p class="subtitle"><%= org.legal_name %> — RFC: <%= org.rfc %></p>
+
+      <div class="status-grid">
+        <div class="status-card <%= status.fiscal_data_complete ? 'done' : '' %>">
+          <div class="status-icon"><%= status.fiscal_data_complete ? '✅' : '⬜' %></div>
+          <h3>Datos Fiscales</h3>
+          <p><%= status.fiscal_data_complete ? 'Completos' : 'Pendientes' %></p>
+        </div>
+        <div class="status-card <%= status.csd_uploaded ? 'done' : '' %>">
+          <div class="status-icon"><%= status.csd_uploaded ? '✅' : '⬜' %></div>
+          <h3>CSD</h3>
+          <p><%= status.csd_uploaded ? 'Cargado' : 'Pendiente' %></p>
+          <% if (locals.csd_days && csd_days <= 30) { %>
+            <small class="warning">Vence en <%= csd_days %> dias</small>
+          <% } %>
+        </div>
+        <div class="status-card <%= status.manifesto_signed ? 'done' : '' %>">
+          <div class="status-icon"><%= status.manifesto_signed ? '✅' : '⬜' %></div>
+          <h3>Carta Manifiesto</h3>
+          <p><%= status.manifesto_signed ? 'Firmada' : 'Pendiente' %></p>
+        </div>
+        <div class="status-card <%= status.live_ready ? 'done' : '' %>">
+          <div class="status-icon"><%= status.live_ready ? '🚀' : '⏳' %></div>
+          <h3>Listo para Timbrar</h3>
+          <p><%= status.live_ready ? 'En produccion' : 'Configurando...' %></p>
+        </div>
+      </div>
+
+      <div class="next-steps">
+        <h2>¿Que sigue?</h2>
+        <div class="steps-list">
+          <% if (!status.csd_uploaded) { %>
+            <a href="/onboarding/step2" class="step-link">
+              <span class="step-badge">1</span> Subir tu CSD (.cer + .key)
+            </a>
+          <% } %>
+          <% if (status.csd_uploaded && !status.manifesto_signed) { %>
+            <a href="/onboarding/step3" class="step-link">
+              <span class="step-badge">2</span> Subir e.firma para Carta Manifiesto
+            </a>
+          <% } %>
+          <% if (status.live_ready) { %>
+            <div class="step-link done">
+              <span class="step-badge">✓</span> Conectar MCP Facturacion a Claude
+            </div>
+            <div class="step-link">
+              <span class="step-badge">3</span> ¡Empieza a facturar con IA!
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="mcp-config">
+        <h2>Configuracion MCP</h2>
+        <p>Para conectar tu asistente IA a conectus.mx, agrega esto a tu configuracion de MCP:</p>
+        <div class="code-block">
+          <pre><code>{
+  "mcpServers": {
+    "conectus-facturacion": {
+      "command": "npx",
+      "args": ["@conectus-mx/mcp-facturacion-cfdi"],
+      "env": {
+        "CONECTUS_ACCOUNT_ID": "<%= org.account_id %>"
+      }
+    }
+  }
+}</code></pre>
+        </div>
+        <p class="note">Proximamente disponible en nuestro marketplace de MCPs</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

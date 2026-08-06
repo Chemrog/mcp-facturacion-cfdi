@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - conectus.mx</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <a href="/onboarding" class="back-link">← Volver</a>
+      <h1>Iniciar Sesion</h1>
+      <p class="subtitle">Accede a tu panel de facturacion</p>
+
+      <% if (locals.error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <form method="POST" action="/onboarding/login" class="auth-form">
+        <div class="form-group">
+          <label for="email">Correo electronico</label>
+          <input type="email" id="email" name="email" required placeholder="juan@empresa.com">
+        </div>
+        <div class="form-group">
+          <label for="password">Contrasena</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn-primary btn-full">Iniciar Sesion</button>
+      </form>
+      <p class="auth-footer">No tienes cuenta? <a href="/onboarding/register">Registrate</a></p>
+    </div>
+  </div>
+</body>
+</html>

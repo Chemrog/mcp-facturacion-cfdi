@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Datos Fiscales - conectus.mx</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="onboarding-container">
+    <div class="onboarding-card">
+      <div class="progress-bar">
+        <div class="progress" style="width: 25%"></div>
+      </div>
+      <div class="step-indicator">
+        <span class="step active">1</span><span class="step-label active">Datos Fiscales</span>
+        <span class="step-line"></span>
+        <span class="step">2</span><span class="step-label">CSD</span>
+        <span class="step-line"></span>
+        <span class="step">3</span><span class="step-label">e.firma</span>
+        <span class="step-line"></span>
+        <span class="step">4</span><span class="step-label">Listo</span>
+      </div>
+
+      <h1>Paso 1: Datos Fiscales</h1>
+      <p class="subtitle">Necesitamos tu informacion fiscal para configurar tu perfil de facturacion</p>
+
+      <% if (locals.error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <form method="POST" action="/onboarding/step1" class="onboarding-form">
+        <div class="form-group">
+          <label for="organization_name">Nombre de tu organizacion <span class="hint">(solo visible para ti)</span></label>
+          <input type="text" id="organization_name" name="organization_name" required placeholder="Mi Empresa SA de CV">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="rfc">RFC <span class="required">*</span></label>
+            <input type="text" id="rfc" name="rfc" required placeholder="XAXX010101000" maxlength="13" pattern="[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}">
+            <small>Formato: 4 letras + 6 digitos + 3 caracteres</small>
+          </div>
+          <div class="form-group">
+            <label for="tax_system">Regimen Fiscal <span class="required">*</span></label>
+            <select id="tax_system" name="tax_system" required>
+              <option value="">Selecciona tu regimen...</option>
+              <optgroup label="Persona Fisica">
+                <option value="612">612 - Actividades Empresariales y Profesionales</option>
+                <option value="621">621 - Incorporacion Fiscal</option>
+                <option value="625">625 - Plataformas Tecnologicas</option>
+                <option value="626">626 - Regimen Simplificado de Confianza</option>
+                <option value="606">606 - Arrendamiento</option>
+                <option value="605">605 - Sueldos y Salarios</option>
+                <option value="622">622 - Actividades Agricolas</option>
+              </optgroup>
+              <optgroup label="Persona Moral">
+                <option value="601">601 - General de Ley Personas Morales</option>
+                <option value="603">603 - Personas Morales con Fines no Lucrativos</option>
+                <option value="610">610 - Residentes en el Extranjero</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="legal_name">Razon Social / Nombre Fiscal <span class="required">*</span></label>
+            <input type="text" id="legal_name" name="legal_name" required placeholder="Juan Perez Lopez (sin SA de CV)">
+            <small>Tal como aparece en tu constancia fiscal, SIN regimen societario</small>
+          </div>
+          <div class="form-group">
+            <label for="zip_code">Codigo Postal Fiscal <span class="required">*</span></label>
+            <input type="text" id="zip_code" name="zip_code" required placeholder="12345" maxlength="5" pattern="[0-9]{5}">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary btn-lg">Continuar al Paso 2 →</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

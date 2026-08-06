@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>e.firma - conectus.mx</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="onboarding-container">
+    <div class="onboarding-card">
+      <div class="progress-bar">
+        <div class="progress" style="width: 75%"></div>
+      </div>
+      <div class="step-indicator">
+        <span class="step done">✓</span><span class="step-label done">Datos Fiscales</span>
+        <span class="step-line"></span>
+        <span class="step done">✓</span><span class="step-label done">CSD</span>
+        <span class="step-line"></span>
+        <span class="step active">3</span><span class="step-label active">e.firma</span>
+        <span class="step-line"></span>
+        <span class="step">4</span><span class="step-label">Listo</span>
+      </div>
+
+      <h1>Paso 3: e.firma (FIEL)</h1>
+      <p class="subtitle">La e.firma es necesaria para firmar la Carta Manifiesto, un requisito del SAT para timbrar en produccion</p>
+
+      <% if (locals.has_fiel) { %>
+        <div class="alert alert-success">✅ e.firma ya cargada</div>
+      <% } %>
+      <% if (locals.error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <div class="info-box">
+        <strong>La Carta Manifiesto</strong>
+        <p>Es un documento donde autorizas a conectus.mx como tu proveedor de timbrado ante el SAT. Se firma con tu e.firma y es <strong>obligatorio</strong> para emitir facturas validas.</p>
+      </div>
+
+      <form method="POST" action="/onboarding/step3" enctype="multipart/form-data" class="onboarding-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fiel_cer">Certificado .cer de e.firma</label>
+            <div class="file-upload">
+              <input type="file" id="fiel_cer" name="fiel_cer" accept=".cer">
+              <label for="fiel_cer">Seleccionar archivo</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="fiel_key">Llave .key de e.firma</label>
+            <div class="file-upload">
+              <input type="file" id="fiel_key" name="fiel_key" accept=".key">
+              <label for="fiel_key">Seleccionar archivo</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="fiel_password">Contrasena de e.firma</label>
+          <input type="password" id="fiel_password" name="fiel_password" placeholder="Contrasena de tu e.firma">
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary btn-lg">Subir e.firma y finalizar →</button>
+        </div>
+        <div class="skip-link">
+          <a href="/onboarding/dashboard">Omitir por ahora (puedes subirla despues)</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

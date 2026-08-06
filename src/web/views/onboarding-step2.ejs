@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subir CSD - conectus.mx</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="onboarding-container">
+    <div class="onboarding-card">
+      <div class="progress-bar">
+        <div class="progress" style="width: 50%"></div>
+      </div>
+      <div class="step-indicator">
+        <span class="step done">✓</span><span class="step-label done">Datos Fiscales</span>
+        <span class="step-line"></span>
+        <span class="step active">2</span><span class="step-label active">CSD</span>
+        <span class="step-line"></span>
+        <span class="step">3</span><span class="step-label">e.firma</span>
+        <span class="step-line"></span>
+        <span class="step">4</span><span class="step-label">Listo</span>
+      </div>
+
+      <h1>Paso 2: Certificado de Sello Digital (CSD)</h1>
+      <p class="subtitle">El CSD es necesario para timbrar facturas ante el SAT</p>
+
+      <% if (locals.has_csd) { %>
+        <div class="alert alert-success">✅ Ya tienes un CSD cargado. Puedes reemplazarlo si es necesario.</div>
+      <% } %>
+      <% if (locals.csd_expires_at) { %>
+        <div class="alert alert-info">Tu CSD vence el <%= csd_expires_at %></div>
+      <% } %>
+      <% if (locals.error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <div class="info-box">
+        <strong>¿Donde obtengo mi CSD?</strong>
+        <p>El CSD se genera con tu e.firma (FIEL) en el portal del SAT. Necesitas:</p>
+        <ol>
+          <li>Entrar al <a href="https://www.sat.gob.mx" target="_blank">portal del SAT</a></li>
+          <li>Ir a "Certificados de Sello Digital"</li>
+          <li>Generar certificado con tu e.firma</li>
+          <li>Descargar los archivos .cer y .key</li>
+        </ol>
+      </div>
+
+      <form method="POST" action="/onboarding/step2" enctype="multipart/form-data" class="onboarding-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cer_file">Archivo .cer <span class="required">*</span></label>
+            <div class="file-upload">
+              <input type="file" id="cer_file" name="cer_file" accept=".cer" required>
+              <label for="cer_file">Seleccionar archivo .cer</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="key_file">Archivo .key <span class="required">*</span></label>
+            <div class="file-upload">
+              <input type="file" id="key_file" name="key_file" accept=".key" required>
+              <label for="key_file">Seleccionar archivo .key</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="csd_password">Contrasena de la llave privada <span class="required">*</span></label>
+          <input type="password" id="csd_password" name="csd_password" required placeholder="La misma que usaste al generar el CSD">
+        </div>
+
+        <div class="form-group">
+          <label for="logo">Logotipo de tu empresa (opcional)</label>
+          <div class="file-upload">
+            <input type="file" id="logo" name="logo" accept="image/*">
+            <label for="logo">Seleccionar logo (PNG o JPG)</label>
+          </div>
+          <small>Aparecera en el PDF de tus facturas. Si no subes uno, usaremos el logo de conectus.mx.</small>
+        </div>
+
+        <div class="security-note">
+          🔒 <strong>Tus archivos se almacenan encriptados con AES-256-GCM.</strong> Solo conectus.mx puede desencriptarlos para timbrar tus facturas.
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary btn-lg">Subir CSD y continuar →</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
