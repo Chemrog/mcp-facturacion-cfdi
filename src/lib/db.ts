@@ -79,7 +79,12 @@ export interface DbOrganization {
   updated_at: string;
 }
 
+function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 export async function getOrganizationByAccount(accountId: string): Promise<DbOrganization | null> {
+  if (!isValidUUID(accountId)) return null;
   return queryOne<DbOrganization>(
     `SELECT * FROM tax_organizations WHERE account_id = $1`,
     [accountId]
