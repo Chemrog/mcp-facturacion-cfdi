@@ -81,7 +81,10 @@ app.get("/.well-known/oauth-protected-resource", (req, res) => {
 const mcpAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const key = req.headers.authorization?.replace("Bearer ", "") || (req.query.key as string);
 
-  if (!key) return res.status(401).json({ error: "No API key" });
+  if (!key) {
+    res.status(401).json({ error: "No API key" });
+    return;
+  }
 
   // Si la key coincide con INTERNAL_SECRET, es admin
   if (key === INTERNAL_SECRET) {
@@ -89,21 +92,55 @@ const mcpAuthMiddleware = async (req: Request, res: Response, next: NextFunction
     return;
   }
 
-  // Validar API key contra conectus.mx (o aceptar por ahora con account_id)
-  const row = await db.getPool().query(
-    `SELECT t.id as org_id, t.account_id FROM tax_organizations t WHERE t.id = $1 OR t.account_id = $1`,
-    [key]
-  );
+  // Intentar validar contra conectus.mx
+  const platformUrl = process.env.PLATFORM_URL || "https://micontexto-mx.fly.dev";
+  try {
+    const response = await fetch(`${platformUrl}/api/internal/validate-key`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Internal-Secret": INTERNAL_SECRET,
+      },
+      body: JSON.stringify({ key }),
+      signal: AbortSignal.timeout(5000),
+    });
 
-  if (row.rows.length === 0) {
-    return res.status(403).json({ error: "Invalid API key" });
+    if (response.ok) {
+      const data = await response.json();
+      (req as any).auth = {
+        accountId: data.tenantId || data.userId,
+        orgId: data.tenantId,
+        userId: data.userId,
+      };
+      next();
+      return;
+    }
+  } catch {
+    // Si conectus no responde, intentar validar localmente
   }
 
-  (req as any).auth = {
-    accountId: row.rows[0].account_id,
-    orgId: row.rows[0].org_id,
-  };
-  next();
+  // Fallback: validar contra DB local
+  try {
+    const pool = db.getPool();
+    const row = await pool.query(
+      `SELECT t.id as org_id, t.account_id FROM tax_organizations t WHERE t.id = $1 OR t.account_id = $1`,
+      [key]
+    );
+
+    if (row.rows.length > 0) {
+      (req as any).auth = {
+        accountId: row.rows[0].account_id,
+        orgId: row.rows[0].org_id,
+      };
+      next();
+      return;
+    }
+  } catch {
+    // DB not available
+  }
+
+  // Si todo falla, rechazar (pero dejar que el MCP handler maneje el HTTP)
+  res.status(403).json({ error: "Invalid API key" });
 };
 
 // ============================================================
