@@ -191,7 +191,10 @@ async function createMcpServer(): Promise<McpServer> {
   ];
 
   for (const tool of allTools) {
-    server.registerTool(tool.name, tool.inputSchema as any, async (args: any) => {
+    server.registerTool(tool.name, {
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+    } as any, async (args: any) => {
       try {
         return await tool.handler(args);
       } catch (err: any) {
