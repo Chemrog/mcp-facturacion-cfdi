@@ -30,19 +30,31 @@ NOTA: El SAT valida que el RFC y los datos fiscales del cliente existan. Si el R
       tax_system: z.string().length(3).describe("Clave regimen fiscal (3 digitos)"),
       email: z.string().email().optional(),
       phone: z.string().optional(),
-      address_street: z.string().optional(),
-      address_exterior: z.string().optional(),
-      address_interior: z.string().optional(),
-      address_neighborhood: z.string().optional(),
-      address_city: z.string().optional(),
-      address_municipality: z.string().optional(),
-      address_zip: z.string(),
-      address_state: z.string().optional(),
-      address_country: z.string().default("MEX"),
+      // Flat address (simpler, for agent use)
+      address_zip: z.string().optional(),
+      address_country: z.string().optional().default("MEX"),
+      // OR nested address object (consistent with create_invoice)
+      address: z.object({
+        zip: z.string(),
+        country: z.string().default("MEX"),
+        street: z.string().optional(),
+        exterior: z.string().optional(),
+        interior: z.string().optional(),
+        neighborhood: z.string().optional(),
+        city: z.string().optional(),
+        municipality: z.string().optional(),
+        state: z.string().optional(),
+      }).optional(),
     },
     handler: async (input) => {
       try {
         const org = await ensureOrg(input.account_id);
+
+        // Accept both flat and nested address
+        const address = input.address || {
+          zip: input.address_zip || "",
+          country: input.address_country || "MEX",
+        };
 
         const customer = await facturapi.customers.create({
           legal_name: input.legal_name,
@@ -50,17 +62,7 @@ NOTA: El SAT valida que el RFC y los datos fiscales del cliente existan. Si el R
           tax_system: input.tax_system,
           email: input.email,
           phone: input.phone,
-          address: {
-            street: input.address_street,
-            exterior: input.address_exterior,
-            interior: input.address_interior,
-            neighborhood: input.address_neighborhood,
-            city: input.address_city,
-            municipality: input.address_municipality,
-            zip: input.address_zip,
-            state: input.address_state,
-            country: input.address_country,
-          },
+          address,
         }, "live") as Record<string, unknown>;
 
         await db.cacheCustomer(org.id, customer);
