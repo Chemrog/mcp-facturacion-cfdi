@@ -173,6 +173,16 @@ async function createMcpServer(): Promise<McpServer> {
 
   // Cargar todas las tools
   try {
+    console.error("📦 Cargando tools...");
+    try { await import("./tools/onboarding.tools.js"); console.error("  ✅ onboarding tools"); } catch(e: any) { console.error("  ❌ onboarding:", e.message); }
+    try { await import("./tools/customers_products.tools.js"); console.error("  ✅ customers/products"); } catch(e: any) { console.error("  ❌ customers:", e.message); }
+    try { await import("./tools/invoices.tools.js"); console.error("  ✅ invoices"); } catch(e: any) { console.error("  ❌ invoices:", e.message); }
+    try { await import("./tools/receipts_retentions.tools.js"); console.error("  ✅ receipts/retentions"); } catch(e: any) { console.error("  ❌ receipts:", e.message); }
+    try { await import("./tools/consulting.tools.js"); console.error("  ✅ consulting"); } catch(e: any) { console.error("  ❌ consulting:", e.message); }
+    try { await import("./tools/carta_porte.tools.js"); console.error("  ✅ carta porte"); } catch(e: any) { console.error("  ❌ carta:", e.message); }
+    try { await import("./tools/reports_webhooks.tools.js"); console.error("  ✅ reports"); } catch(e: any) { console.error("  ❌ reports:", e.message); }
+    try { await import("./tools/assistant.tools.js"); console.error("  ✅ assistant"); } catch(e: any) { console.error("  ❌ assistant:", e.message); }
+    
     const { onboardingTools } = await import("./tools/onboarding.tools.js");
     const { customerTools, productTools } = await import("./tools/customers_products.tools.js");
     const { invoiceTools } = await import("./tools/invoices.tools.js");
