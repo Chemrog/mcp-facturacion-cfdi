@@ -78,6 +78,10 @@ app.get("/.well-known/oauth-protected-resource", (req, res) => {
 // ============================================================
 // Auth middleware para MCP
 // ============================================================
+// Cache de validacion (5 min)
+const authCache = new Map<string, { data: { userId?: string; tenantId?: string; accountId?: string }; expiry: number }>();
+const CACHE_TTL = 5 * 60 * 1000;
+
 const mcpAuthMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const key = req.headers.authorization?.replace("Bearer ", "") || (req.query.key as string);
 
@@ -86,37 +90,40 @@ const mcpAuthMiddleware = async (req: Request, res: Response, next: NextFunction
     return;
   }
 
-  // Si la key coincide con INTERNAL_SECRET, es admin
-  if (key === INTERNAL_SECRET) {
+  // Check cache
+  const cached = authCache.get(key);
+  if (cached && cached.expiry > Date.now()) {
+    (req as any).auth = cached.data;
     next();
     return;
   }
 
-  // Intentar validar contra conectus.mx
-  const platformUrl = process.env.PLATFORM_URL || "https://micontexto-mx.fly.dev";
-  try {
-    const response = await fetch(`${platformUrl}/api/internal/validate-key`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Internal-Secret": INTERNAL_SECRET,
-      },
-      body: JSON.stringify({ key }),
-      signal: AbortSignal.timeout(5000),
-    });
+  // Si la key coincide con INTERNAL_SECRET, es admin
+  if (key === INTERNAL_SECRET) {
+    const data = { accountId: "admin" };
+    authCache.set(key, { data, expiry: Date.now() + CACHE_TTL });
+    (req as any).auth = data;
+    next();
+    return;
+  }
 
-    if (response.ok) {
-      const data = await response.json();
-      (req as any).auth = {
-        accountId: data.tenantId || data.userId,
-        orgId: data.tenantId,
-        userId: data.userId,
-      };
-      next();
-      return;
+  // Intentar decodificar como JWT (OAuth token de Claude/conectus.mx)
+  try {
+    const parts = key.split(".");
+    if (parts.length === 3) {
+      const payload = JSON.parse(Buffer.from(parts[1], "base64").toString());
+      const userId = payload.sub || payload.userId;
+      const tenantId = payload.tenant_id || payload.tenantId || "default";
+      if (userId || tenantId) {
+        const data = { userId, tenantId, accountId: tenantId };
+        authCache.set(key, { data, expiry: Date.now() + CACHE_TTL });
+        (req as any).auth = data;
+        next();
+        return;
+      }
     }
   } catch {
-    // Si conectus no responde, intentar validar localmente
+    // Not a valid JWT, fall through
   }
 
   // Fallback: validar contra DB local
@@ -128,10 +135,9 @@ const mcpAuthMiddleware = async (req: Request, res: Response, next: NextFunction
     );
 
     if (row.rows.length > 0) {
-      (req as any).auth = {
-        accountId: row.rows[0].account_id,
-        orgId: row.rows[0].org_id,
-      };
+      const data = { accountId: row.rows[0].account_id, orgId: row.rows[0].org_id };
+      authCache.set(key, { data, expiry: Date.now() + CACHE_TTL });
+      (req as any).auth = data;
       next();
       return;
     }
@@ -139,7 +145,6 @@ const mcpAuthMiddleware = async (req: Request, res: Response, next: NextFunction
     // DB not available
   }
 
-  // Si todo falla, rechazar (pero dejar que el MCP handler maneje el HTTP)
   res.status(403).json({ error: "Invalid API key" });
 };
 
