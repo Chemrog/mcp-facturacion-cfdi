@@ -2,8 +2,11 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
+ARG NODE_ENV
+ENV NODE_ENV=development
+
 COPY package*.json ./
-RUN NODE_ENV=development npm ci
+RUN npm ci
 
 COPY tsconfig.json ./
 COPY src/ ./src/
