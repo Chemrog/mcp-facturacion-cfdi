@@ -240,11 +240,68 @@ async function createMcpServer(): Promise<McpServer> {
   let nodeMcpHandler: any = null;
 
   try {
-    const mcpServer = await createMcpServer();
+    console.error("🔄 Creando MCP server...");
+    const mcpServer = new McpServer(
+      { name: "conectus-mx-facturacion-cfdi", version: "1.0.0" },
+      { capabilities: { tools: {}, resources: {} } }
+    );
+    console.error("✅ Servidor creado");
+    
+    // Cargar tools (con logging individual)
+    try {
+      setMasterKeys(
+        process.env.FACTURAPI_LIVE_KEY || "",
+        process.env.FACTURAPI_TEST_KEY || "",
+        process.env.FACTURAPI_USER_KEY || ""
+      );
+      try { db.initDatabase(); console.error("  ✅ DB"); } catch(e: any) { console.error("  ⚠️ DB:", e.message); }
+      
+      const mods: Array<[string, () => Promise<any>]> = [
+        ["onboarding", () => import("./tools/onboarding.tools.js")],
+        ["customers", () => import("./tools/customers_products.tools.js")],
+        ["invoices", () => import("./tools/invoices.tools.js")],
+        ["receipts", () => import("./tools/receipts_retentions.tools.js")],
+        ["consulting", () => import("./tools/consulting.tools.js")],
+        ["carta", () => import("./tools/carta_porte.tools.js")],
+        ["reports", () => import("./tools/reports_webhooks.tools.js")],
+        ["assistant", () => import("./tools/assistant.tools.js")],
+      ];
+      
+      let totalTools = 0;
+      for (const [name, loader] of mods) {
+        try {
+          const mod = await loader();
+          const tools: any[] = Object.values(mod).flat().filter((t: any) => t?.name);
+          for (const tool of tools) {
+            (mcpServer as any).registerTool(tool.name, {
+              description: tool.description, 
+              inputSchema: tool.inputSchema,
+            }, async (args: any) => {
+              try { return await tool.handler(args); } catch (e: any) {
+                return { content: [{ type: "text" as const, text: JSON.stringify({ error: e.message }) }] };
+              }
+            });
+            totalTools++;
+          }
+          console.error(`  ✅ ${name}: ${tools.length} tools`);
+        } catch (e: any) {
+          console.error(`  ❌ ${name}: ${e.message}`);
+        }
+      }
+      console.error(`✅ Total: ${totalTools} tools registradas`);
+    } catch (e: any) {
+      console.error("❌ Error tools:", e.message);
+      (globalThis as any).__mcpError = e.message;
+      throw e;
+    }
+    
+    console.error("🔄 Creando HTTP handler...");
     const mcpHandler = createMcpHandler(async () => mcpServer);
     nodeMcpHandler = toNodeHandler(mcpHandler);
+    console.error("✅ MCP HTTP handler listo");
   } catch (err: any) {
-    console.error("❌ Error fatal MCP:", err.message, err.stack);
+    console.error("❌ Error fatal MCP:", err?.message || err, err?.stack?.slice(0,300));
+    (globalThis as any).__mcpError = err?.message || String(err);
   }
 
   app.get("/health", (_req, res) => res.json({ 
