@@ -152,14 +152,21 @@ const mcpAuthMiddleware = async (req: Request, res: Response, next: NextFunction
 // MCP Server setup
 // ============================================================
 async function createMcpServer(): Promise<McpServer> {
-  // Inicializar FacturAPI keys
+  console.error("🔄 Inicializando MCP server...");
+  
   setMasterKeys(
     process.env.FACTURAPI_LIVE_KEY || "",
     process.env.FACTURAPI_TEST_KEY || "",
     process.env.FACTURAPI_USER_KEY || ""
   );
+  console.error("✅ FacturAPI keys configuradas");
 
-  try { db.initDatabase(); } catch { /* DB no disponible */ }
+  try { 
+    db.initDatabase(); 
+    console.error("✅ Neon DB conectada");
+  } catch (e: any) { 
+    console.error("⚠️ Neon DB no disponible:", e.message);
+  }
 
   const server = new McpServer(
     { name: "conectus-mx-facturacion-cfdi", version: "1.0.0" },
@@ -167,52 +174,54 @@ async function createMcpServer(): Promise<McpServer> {
   );
 
   // Cargar todas las tools
-  const { onboardingTools } = await import("./tools/onboarding.tools.js");
-  const { customerTools, productTools } = await import("./tools/customers_products.tools.js");
-  const { invoiceTools } = await import("./tools/invoices.tools.js");
-  const { receiptTools, retentionTools } = await import("./tools/receipts_retentions.tools.js");
-  const { consultingTools } = await import("./tools/consulting.tools.js");
-  const { cartaPorteTools, foreignTradeTools } = await import("./tools/carta_porte.tools.js");
-  const { reportsTools } = await import("./tools/reports_webhooks.tools.js");
-  const { assistantTools } = await import("./tools/assistant.tools.js");
+  try {
+    const { onboardingTools } = await import("./tools/onboarding.tools.js");
+    const { customerTools, productTools } = await import("./tools/customers_products.tools.js");
+    const { invoiceTools } = await import("./tools/invoices.tools.js");
+    const { receiptTools, retentionTools } = await import("./tools/receipts_retentions.tools.js");
+    const { consultingTools } = await import("./tools/consulting.tools.js");
+    const { cartaPorteTools, foreignTradeTools } = await import("./tools/carta_porte.tools.js");
+    const { reportsTools } = await import("./tools/reports_webhooks.tools.js");
+    const { assistantTools } = await import("./tools/assistant.tools.js");
 
-  const allTools = [
-    ...onboardingTools,
-    ...customerTools,
-    ...productTools,
-    ...invoiceTools,
-    ...receiptTools,
-    ...retentionTools,
-    ...consultingTools,
-    ...cartaPorteTools,
-    ...foreignTradeTools,
-    ...reportsTools,
-    ...assistantTools,
-  ];
+    const allTools = [
+      ...onboardingTools,
+      ...customerTools,
+      ...productTools,
+      ...invoiceTools,
+      ...receiptTools,
+      ...retentionTools,
+      ...consultingTools,
+      ...cartaPorteTools,
+      ...foreignTradeTools,
+      ...reportsTools,
+      ...assistantTools,
+    ];
 
-  for (const tool of allTools) {
-    server.registerTool(tool.name, {
-      description: tool.description,
-      inputSchema: tool.inputSchema,
-    } as any, async (args: any) => {
-      try {
-        return await tool.handler(args);
-      } catch (err: any) {
-        return {
-          content: [{
-            type: "text" as const,
-            text: JSON.stringify({
-              success: false,
-              error: err.message || "Error inesperado",
-              code: err.code || "internal_error",
-            }, null, 2),
-          }],
-        };
-      }
-    });
+    for (const tool of allTools) {
+      server.registerTool(tool.name, {
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      } as any, async (args: any) => {
+        try {
+          return await tool.handler(args);
+        } catch (err: any) {
+          return {
+            content: [{
+              type: "text" as const,
+              text: JSON.stringify({ success: false, error: err.message, code: err.code || "internal_error" }, null, 2),
+            }],
+          };
+        }
+      });
+    }
+
+    console.error(`🚀 conectus.mx - ${allTools.length} tools registradas en 11 grupos`);
+  } catch (e: any) {
+    console.error("❌ Error cargando tools:", e.message, e.stack);
+    throw e;
   }
 
-  console.error(`🚀 conectus.mx - ${allTools.length} tools registradas en 11 grupos`);
   return server;
 }
 
@@ -220,9 +229,15 @@ async function createMcpServer(): Promise<McpServer> {
 // MCP HTTP handler (Streamable HTTP)
 // ============================================================
 (async () => {
-  const mcpServer = await createMcpServer();
-  const mcpHandler = createMcpHandler(async () => mcpServer);
-  const nodeMcpHandler = toNodeHandler(mcpHandler);
+  let nodeMcpHandler: any = null;
+
+  try {
+    const mcpServer = await createMcpServer();
+    const mcpHandler = createMcpHandler(async () => mcpServer);
+    nodeMcpHandler = toNodeHandler(mcpHandler);
+  } catch (err: any) {
+    console.error("❌ Error fatal MCP:", err.message);
+  }
 
   app.all(["/", "/mcp", "/sse"], mcpAuthMiddleware, async (req, res) => {
     await mcpContext.run(
@@ -428,6 +443,7 @@ async function createMcpServer(): Promise<McpServer> {
     console.log(`\n🧾 conectus.mx - MCP Facturacion CFDI v1.0.0`);
     console.log(`   MCP Endpoint: http://localhost:${PORT}/mcp`);
     console.log(`   Onboarding:   http://localhost:${PORT}/onboarding`);
-    console.log(`   Health:       http://localhost:${PORT}/health\n`);
+    console.log(`   Health:       http://localhost:${PORT}/health`);
+    console.log(`   MCP Status:   ${nodeMcpHandler ? "✅ OK" : "❌ FAILED"}\n`);
   });
 })();
