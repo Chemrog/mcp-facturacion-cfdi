@@ -49,8 +49,6 @@ app.use(session({
 // ============================================================
 // Health / Info
 // ============================================================
-app.get("/health", (_req, res) => res.json({ status: "ok", mcp: "conectus-facturacion-cfdi" }));
-
 app.get("/info", (_req, res) => {
   res.send(`
     <html><head><title>conectus.mx - Facturacion CFDI MCP</title></head>
@@ -236,10 +234,19 @@ async function createMcpServer(): Promise<McpServer> {
     const mcpHandler = createMcpHandler(async () => mcpServer);
     nodeMcpHandler = toNodeHandler(mcpHandler);
   } catch (err: any) {
-    console.error("❌ Error fatal MCP:", err.message);
+    console.error("❌ Error fatal MCP:", err.message, err.stack);
   }
 
+  app.get("/health", (_req, res) => res.json({ 
+    status: "ok", 
+    mcp: "conectus-facturacion-cfdi",
+    mcpReady: !!nodeMcpHandler,
+  }));
+
   app.all(["/", "/mcp", "/sse"], mcpAuthMiddleware, async (req, res) => {
+    if (!nodeMcpHandler) {
+      return res.status(503).json({ error: "MCP server not initialized", mcpReady: false });
+    }
     await mcpContext.run(
       { accountId: (req as any).auth?.accountId, orgId: (req as any).auth?.orgId },
       async () => {
