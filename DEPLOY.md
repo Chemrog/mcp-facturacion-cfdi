@@ -8,13 +8,15 @@
 
 ## Dockerfile
 
-Es **Dockerfile** simple (no docker-compose). Coolify lo detecta automáticamente.
+Es **Dockerfile** simple (no docker-compose). **Multi-stage build**: compila TypeScript dentro del contenedor en stage 1, luego solo copia `dist/` al stage 2 de runtime.
 
-- **Puerto expuesto:** 3002
+- **Puerto expuesto:** 3002 (EXPOSE en Dockerfile)
 - **Base image:** node:22-alpine
-- **Build:** `npm ci --omit=dev` (solo dependencias de producción)
+- **Build:** `npm ci` → `tsc` (stage 1) → `npm ci --omit=dev` (stage 2)
 
 ## Variables de entorno (copiar a Coolify)
+
+⚠️ **Importante:** Marcar TODAS las variables como **"Runtime only"** en Coolify. No marcarlas como "Available at Buildtime" porque eso las expone en el Dockerfile y genera warnings de seguridad.
 
 ```
 PORT=3002
