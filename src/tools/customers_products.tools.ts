@@ -213,7 +213,7 @@ export const productTools: McpServerTool[] = [
 
 CAMPOS CLAVE:
 - description: Nombre/descripcion como aparecera en la factura
-- product_key: Clave SAT de producto/servicio (usa find_sat_product_code para buscarla)
+- product_key: Clave SAT de producto/servicio (usa lookup_sat_product_code para buscarla)
 - price: Precio unitario
 - unit_key: Clave de unidad SAT (default: 'H87' = pieza/elemento)
 - tax_included: Si el precio ya incluye IVA (default: true)
@@ -221,7 +221,7 @@ CAMPOS CLAVE:
     inputSchema: {
       account_id: z.string(),
       description: z.string().min(1),
-      product_key: z.string().min(1).describe("Clave SAT del producto (buscala con find_sat_product_code)"),
+      product_key: z.string().min(1).describe("Clave SAT del producto (buscala con lookup_sat_product_code)"),
       price: z.number().min(0),
       unit_key: z.string().default("H87"),
       unit_name: z.string().default("Elemento"),
